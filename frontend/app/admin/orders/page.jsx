@@ -50,7 +50,8 @@ export default function AdminOrdersPage() {
   const updateStatus = async (id, status) => {
     try {
       await apiRequest(
-        /orders/${id}/status,
+       `/orders/${id}/status`,
+
         {
           method: "PATCH",
           body: JSON.stringify({ status }),

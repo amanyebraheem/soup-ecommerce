@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 
-import { apiRequest } from "../../../lib/api";
-import { fetchCategories } from "../../../redux/slices/categorySlice";
+import { apiRequest } from "../lib/api";
+import { fetchCategories } from "../redux/slices/categorySlice";
 
 export default function SellerProductsPage() {
 const router = useRouter();

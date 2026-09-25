@@ -2,216 +2,223 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiRequest } from "../lib/api";
 
-import api from "../lib/api";
+
+
 
 export default function AdminDashboard() {
-    const router = useRouter();
+const router = useRouter();
 
-    const [orders, setOrders] = useState([]);
-    const [categories, setCategories] = useState([]);
+const [orders, setOrders] = useState([]);
+const [categories, setCategories] = useState([]);
 
-    const [loading, setLoading] = useState(true);
+const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const user = JSON.parse(
-            localStorage.getItem("user") || "null"
-        );
+useEffect(() => {
+    const user = JSON.parse(
+        localStorage.getItem("user") || "null"
+    );
 
-        if (!user || user.role !== "admin") {
-            router.push("/login");
-            return;
-        }
+    if (!user || user.role !== "admin") {
+        router.push("/login");
+        return;
+    }
 
-        const loadData = async () => {
-            try {
-                const [ordersResponse, categoriesResponse] =
-                    await Promise.all([
-                        api.get("/orders"),
-                        api.get("/categories"),
-                    ]);
-
-                setOrders(
-                    ordersResponse.data.orders
-                );
-
-                setCategories(
-                    categoriesResponse.data.categories
-                );
-
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadData();
-    }, [router]);
-
-    const updateStatus = async (orderId, status) => {
+    const loadData = async () => {
         try {
-            const response = await api.patch(
-                /orders/${orderId}/status,
-                { status }
+            const [ordersResponse, categoriesResponse] =
+                await Promise.all([
+                    apiRequest("/orders"),
+                    apiRequest("/categories"),
+                ]);
+
+            setOrders(
+                ordersResponse.orders || []
             );
 
-            setOrders((currentOrders) =>
-                currentOrders.map((order) =>
-                    order._id === orderId
-                        ? response.data.order
-                        : order
-                )
+            setCategories(
+                categoriesResponse.categories || []
             );
 
         } catch (error) {
-            alert(
-                error.response?.data?.message ||
-                "Failed to update status"
-            );
+            console.error(error);
+        } finally {
+            setLoading(false);
         }
     };
 
-    return (
-        <main className="mx-auto max-w-7xl px-4 py-12">
+    loadData();
+}, [router]);
 
-            <div className="mb-10">
-                <h1 className="text-4xl font-black">
-                    Admin Dashboard
-                </h1>
+const updateStatus = async (orderId, status) => {
+    try {
+        const response = await apiRequest(
+            `/orders/${orderId}/status`,
+            {
+                method: "PATCH",
+                body: JSON.stringify({ status }),
+            }
+        );
 
-                <p className="mt-2 text-gray-500">
-                    Manage orders and categories
-                </p>
-            </div>
+        setOrders((currentOrders) =>
+            currentOrders.map((order) =>
+                order._id === orderId
+                    ? response.order
+                    : order
+            )
+        );
 
-            {loading ? (
-                <div>Loading dashboard...</div>
-            ) : (
-                <>
-                    <div className="mb-10 grid gap-5 md:grid-cols-2">
+    } catch (error) {
+        alert(
+            error.message ||
+            "Failed to update status"
+        );
+    }
+};
 
-                        <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                            <p className="text-gray-500">
-                                Total Orders
-                            </p>
+return (
+    <main className="mx-auto max-w-7xl px-4 py-12">
 
-                            <p className="mt-2 text-4xl font-black">
-                                {orders.length}
-                            </p>
-                        </div>
+        <div className="mb-10">
+            <h1 className="text-4xl font-black">
+                Admin Dashboard
+            </h1>
 
-                        <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                            <p className="text-gray-500">
-                                Categories
-                            </p>
+            <p className="mt-2 text-gray-500">
+                Manage orders and categories
+            </p>
+        </div>
 
-                            <p className="mt-2 text-4xl font-black">
-                                {categories.length}
-                            </p>
-                        </div>
+        {loading ? (
+            <div>Loading dashboard...</div>
+        ) : (
+            <>
+                <div className="mb-10 grid gap-5 md:grid-cols-2">
 
+                    <div className="rounded-2xl border bg-white p-6 shadow-sm">
+                        <p className="text-gray-500">
+                            Total Orders
+                        </p>
+
+                        <p className="mt-2 text-4xl font-black">
+                            {orders.length}
+                        </p>
                     </div>
 
-                    <div className="overflow-hidden rounded-2xl border bg-white">
+                    <div className="rounded-2xl border bg-white p-6 shadow-sm">
+                        <p className="text-gray-500">
+                            Categories
+                        </p>
 
-                        <div className="border-b p-5">
-                            <h2 className="text-xl font-bold">
-                                All Orders
-                            </h2>
-                        </div>
+                        <p className="mt-2 text-4xl font-black">
+                            {categories.length}
+                        </p>
+                    </div>
 
-                        <div className="overflow-x-auto">
+                </div>
 
-                            <table className="w-full text-left">
+                <div className="overflow-hidden rounded-2xl border bg-white">
 
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="p-4">
-                                            Customer
-                                        </th>
+                    <div className="border-b p-5">
+                        <h2 className="text-xl font-bold">
+                            All Orders
+                        </h2>
+                    </div>
 
-                                        <th className="p-4">
-                                            Total
-                                        </th>
+                    <div className="overflow-x-auto">
 
-                                        <th className="p-4">
-                                            Status
-                                        </th>
+                        <table className="w-full text-left">
 
-                                        <th className="p-4">
-                                            Action
-                                        </th>
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="p-4">
+                                        Customer
+                                    </th>
+
+                                    <th className="p-4">
+                                        Total
+                                    </th>
+
+                                    <th className="p-4">
+                                        Status
+                                    </th>
+
+                                    <th className="p-4">
+                                        Action
+                                    </th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                {orders.map((order) => (
+                                    <tr
+                                        key={order._id}
+                                        className="border-t"
+                                    >
+
+                                        <td className="p-4">
+                                            <p className="font-medium">
+                                                {order.user?.name}
+                                            </p>
+
+                                            <p className="text-sm text-gray-500">
+                                                {order.user?.email}
+                                            </p>
+                                        </td>
+
+                                        <td className="p-4 font-semibold">
+                                            ${order.total}
+                                        </td>
+
+                                        <td className="p-4">
+                                            <span className="rounded-full bg-gray-100 px-3 py-1 text-sm capitalize">
+                                                {order.status}
+                                            </span>
+                                        </td>
+
+                                        <td className="p-4">
+
+                                            <select
+                                                value={order.status}
+                                                onChange={(e) =>
+                                                    updateStatus(
+                                                        order._id,
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className="rounded-lg border px-3 py-2"
+                                            >
+                                                <option value="pending">
+                                                    Pending
+                                                </option>
+
+                                                <option value="confirmed">
+                                                    Confirmed
+                                                </option>
+
+                                                <option value="cancelled">
+                                                    Cancelled
+                                                </option>
+                                            </select>
+
+                                        </td>
+
                                     </tr>
-                                </thead>
+                                ))}
 
-                                <tbody>
+                            </tbody>
 
-                                    {orders.map((order) => (
-                                        <tr
-                                            key={order._id}
-                                            className="border-t"
-                                        >
+                        </table>
 
-                                            <td className="p-4">
-                                                <p className="font-medium">
-                                                    {order.user?.name}
-                                                </p>
-
-                                                <p className="text-sm text-gray-500">
-                                                    {order.user?.email}
-                                                </p>
-                                            </td>
-
-                                            <td className="p-4 font-semibold">
-                                                ${order.total}
-                                            </td>
-
-                                            <td className="p-4">
-                                                <span className="rounded-full bg-gray-100 px-3 py-1 text-sm capitalize">
-                                                    {order.status}
-                                                </span>
-                                            </td>
-
-                                            <td className="p-4">
-
-                                                <select
-                                                    value={order.status}
-                                                    onChange={(e) =>
-                                                        updateStatus(
-                                                            order._id,
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    className="rounded-lg border px-3 py-2"
-                                                >
-                                                    <option value="pending">
-                                                        Pending
-                                                    </option>
-
-                                                    <option value="confirmed">
-                                                        Confirmed
-                                                    </option>
-
-                                                    <option value="cancelled">
-                                                        Cancelled
-                                                    </option>
-                                                </select>
-
-                                            </td>
-
-                                        </tr>
-                                    ))}
-
-                                </tbody>
-
-                            </table>
-
-                        </div>
                     </div>
-                </>
-            )}
+                </div>
+            </>
+        )}
 
-        </main>
-    );
+    </main>
+);
+
+
 }

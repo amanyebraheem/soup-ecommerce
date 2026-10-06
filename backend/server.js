@@ -1,7 +1,3 @@
-
-
-
-
 require("dotenv").config();
 
 const express = require("express");
@@ -49,28 +45,18 @@ app.use(
 // UPLOADS
 // ========================================
 
-const uploadsPath = path.join(
-    __dirname,
-    "uploads"
-);
+const uploadsPath = path.join(__dirname, "uploads");
 
 const productsUploadsPath = path.join(
     uploadsPath,
     "products"
 );
 
-// إنشاء مجلدات الصور تلقائيًا
-fs.mkdirSync(
-    productsUploadsPath,
-    {
-        recursive: true
-    }
-);
+fs.mkdirSync(productsUploadsPath, {
+    recursive: true
+});
 
-console.log(
-    "UPLOADS PATH:",
-    uploadsPath
-);
+console.log("UPLOADS PATH:", uploadsPath);
 
 console.log(
     "PRODUCTS UPLOADS PATH:",
@@ -90,131 +76,133 @@ app.use(
 // TEST IMAGE
 // ========================================
 
-app.get(
-    "/test-image",
-    (req, res) => {
+app.get("/test-image", (req, res) => {
+    const testFile = "1790204988458-942754944.jpg";
 
-        const testFile =
-            "1790204988458-942754944.jpg";
+    const testPath = path.join(
+        productsUploadsPath,
+        testFile
+    );
 
-        const testPath = path.join(
-            productsUploadsPath,
-            testFile
-        );
+    console.log("Testing image:", testPath);
 
-        console.log(
-            "Testing image:",
-            testPath
-        );
-
-        // التأكد أن الصورة موجودة
-        if (!fs.existsSync(testPath)) {
-
-            return res.status(404).json({
-                message: "Image not found",
-                path: testPath
-            });
-        }
-
-        // إرسال الصورة
-        return res.sendFile(
-            testPath
-        );
+    if (!fs.existsSync(testPath)) {
+        return res.status(404).json({
+            message: "Image not found",
+            path: testPath
+        });
     }
-);
+
+    return res.sendFile(testPath);
+});
 
 // ========================================
 // ROUTES
 // ========================================
 
-app.use(
-    "/api",
-    userRouter
-);
+app.use("/api", userRouter);
 
-app.use(
-    "/api/products",
-    productRouter
-);
+app.use("/api/products", productRouter);
 
-app.use(
-    "/api/categories",
-    categoryRouter
-);
+app.use("/api/categories", categoryRouter);
 
-app.use(
-    "/api/cart",
-    cartRouter
-);
+app.use("/api/cart", cartRouter);
 
-app.use(
-    "/api/orders",
-    orderRouter
-);
+app.use("/api/orders", orderRouter);
 
 // ========================================
 // DATABASE
 // ========================================
 
 const connectToDB = async () => {
-
     try {
+        mongoose.set("strictQuery", false);
 
-        mongoose.set(
-            "strictQuery",
-            false
-        );
+        if (!process.env.MONGODB_URI) {
+            throw new Error(
+                "MONGODB_URI is missing from .env"
+            );
+        }
+
+        console.log("Connecting to MongoDB...");
 
         await mongoose.connect(
-            process.env.MONGODB_URI
-        );
-
-        console.log(
-            "Connected To DB"
-        );
-
-        const PORT =
-            process.env.PORT || 5000;
-
-        app.listen(
-            PORT,
-            () => {
-
-                console.log(
-                    "================================"
-                );
-
-                console.log(
-                    `Server running on port ${PORT}`
-                );
-
-                console.log(
-                    `Uploads folder: ${uploadsPath}`
-                );
-
-                console.log(
-                    `Products folder: ${productsUploadsPath}`
-                );
-
-                console.log(
-                    `Test image: http://localhost:${PORT}/test-image`
-                );
-
-                console.log(
-                    "================================"
-                );
+            process.env.MONGODB_URI,
+            {
+                serverSelectionTimeoutMS: 10000,
+                connectTimeoutMS: 10000
             }
         );
 
+        console.log("================================");
+        console.log("Connected To MongoDB");
+
+        console.log(
+            "Database:",
+            mongoose.connection.name
+        );
+
+        console.log("================================");
+
+        const PORT = process.env.PORT || 5000;
+
+        app.listen(PORT, () => {
+            console.log("================================");
+
+            console.log(
+                `Server running on port ${PORT}`
+            );
+
+            console.log(
+                `Uploads folder: ${uploadsPath}`
+            );
+
+            console.log(
+                `Products folder: ${productsUploadsPath}`
+            );
+
+            console.log(
+                `Test image: http://localhost:${PORT}/test-image`
+            );
+
+            console.log("================================");
+        });
+
     } catch (error) {
+        console.error("================================");
+        console.error("MongoDB Connection Failed");
+        console.error("================================");
+
+        console.error("Error name:", error.name);
 
         console.error(
-            "Database Error:",
-            error
+            "Error message:",
+            error.message
         );
+
+        if (error.reason) {
+            console.error(
+                "MongoDB topology:",
+                error.reason.type
+            );
+        }
+
+        console.error("================================");
 
         process.exit(1);
     }
 };
 
-connectToDB();
+// ========================================
+// START SERVER
+// ========================================
+
+// Local development
+if (require.main === module) {
+    connectToDB();
+}
+
+module.exports = app;
+
+
+

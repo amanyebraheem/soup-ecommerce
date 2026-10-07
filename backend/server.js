@@ -57,7 +57,6 @@ fs.mkdirSync(productsUploadsPath, {
 });
 
 console.log("UPLOADS PATH:", uploadsPath);
-
 console.log(
     "PRODUCTS UPLOADS PATH:",
     productsUploadsPath
@@ -136,35 +135,28 @@ const connectToDB = async () => {
 
         console.log("================================");
         console.log("Connected To MongoDB");
-
         console.log(
             "Database:",
             mongoose.connection.name
         );
-
         console.log("================================");
 
         const PORT = process.env.PORT || 5000;
 
         app.listen(PORT, () => {
             console.log("================================");
-
             console.log(
                 `Server running on port ${PORT}`
             );
-
             console.log(
                 `Uploads folder: ${uploadsPath}`
             );
-
             console.log(
                 `Products folder: ${productsUploadsPath}`
             );
-
             console.log(
                 `Test image: http://localhost:${PORT}/test-image`
             );
-
             console.log("================================");
         });
 
@@ -174,11 +166,7 @@ const connectToDB = async () => {
         console.error("================================");
 
         console.error("Error name:", error.name);
-
-        console.error(
-            "Error message:",
-            error.message
-        );
+        console.error("Error message:", error.message);
 
         if (error.reason) {
             console.error(
@@ -197,12 +185,4 @@ const connectToDB = async () => {
 // START SERVER
 // ========================================
 
-// Local development
-if (require.main === module) {
-    connectToDB();
-}
-
-module.exports = app;
-
-
-
+connectToDB();

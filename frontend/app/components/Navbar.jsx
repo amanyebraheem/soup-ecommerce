@@ -2,162 +2,391 @@
 
 import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
-
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { logout } from "../redux/slices/authSlice";
+import { fetchCart } from "../redux/slices/cartSlice";
 
 export default function Navbar() {
   const dispatch = useDispatch();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const { user } = useSelector((state) => state.auth);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const cart = useSelector((state) => state.cart.cart);
+  const user = useSelector((state) => state.auth?.user);
 
-  const cartCount =
-    cart?.items?.reduce(
-      (total, item) => total + item.quantity,
-      0
-    ) || 0;
+  const cart = useSelector((state) => state.cart?.cart);
+
+  const cartItems = cart?.items || [];
+
+  const cartCount = cartItems.reduce(
+    (total, item) => total + Number(item.quantity || 0),
+    0
+  );
+
+  useEffect(() => {
+    if (user) {
+      dispatch(fetchCart());
+    }
+  }, [user, dispatch]);
+
+  const handleLogout = () => {
+    dispatch(logout());
+
+    setMenuOpen(false);
+
+    router.push("/login");
+  };
+
+  const closeMenu = () => {
+    setMenuOpen(false);
+  };
+
+  const isActive = (path) => {
+    if (path === "/") {
+      return pathname === "/";
+    }
+
+    return pathname?.startsWith(path);
+  };
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-[#f0e2de] bg-[#fffaf8]/95 shadow-sm backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-4">
+    <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white shadow-sm">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
 
-        {/* Logo */}
+        {/* =========================
+            LOGO
+        ========================= */}
+
         <Link
           href="/"
-          className="group flex items-center gap-2"
+          onClick={closeMenu}
+          className="flex items-center gap-2"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f5dfda]">
-            <span className="text-lg">🌸</span>
-          </div>
+          <span className="text-2xl">🌸</span>
 
-          <div>
-            <h1 className="text-xl font-bold tracking-wide text-[#9e625a]">
-              Glow
-            </h1>
-
-            <p className="hidden text-[9px] font-medium uppercase tracking-[0.25em] text-gray-400 sm:block">
-              Skincare
-            </p>
-          </div>
+          <span className="text-xl font-bold text-gray-800">
+            Souq
+          </span>
         </Link>
 
-        {/* Navigation */}
-        <div className="flex items-center gap-3 sm:gap-5">
+        {/* =========================
+            DESKTOP MENU
+        ========================= */}
+
+        <div className="hidden items-center gap-6 md:flex">
 
           <Link
             href="/"
-            className="hidden text-sm font-medium text-gray-600 transition hover:text-[#b97970] md:block"
+            className={`font-medium transition ${
+              isActive("/")
+                ? "text-blue-600"
+                : "text-gray-600 hover:text-blue-600"
+            }`}
           >
             Home
           </Link>
 
           <Link
             href="/products"
-            className="text-sm font-medium text-gray-600 transition hover:text-[#b97970]"
+            className={`font-medium transition ${
+              isActive("/products")
+                ? "text-blue-600"
+                : "text-gray-600 hover:text-blue-600"
+            }`}
           >
             Products
           </Link>
 
           {user && (
-            <Link
-              href="/cart"
-              className="relative text-sm font-medium text-gray-600 transition hover:text-[#b97970]"
-            >
-              Cart
+            <>
+              <Link
+                href="/cart"
+                className={`relative font-medium transition ${
+                  isActive("/cart")
+                    ? "text-blue-600"
+                    : "text-gray-600 hover:text-blue-600"
+                }`}
+              >
+                Cart
 
-              {cartCount > 0 && (
-                <span className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-[#b97970] px-1.5 py-0.5 text-[10px] font-bold text-white">
-                  {cartCount}
-                </span>
-              )}
-            </Link>
+                {cartCount > 0 && (
+                  <span className="absolute -right-5 -top-3 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+
+              <Link
+                href="/orders"
+                className={`font-medium transition ${
+                  isActive("/orders")
+                    ? "text-blue-600"
+                    : "text-gray-600 hover:text-blue-600"
+                }`}
+              >
+                Orders
+              </Link>
+            </>
           )}
 
-          {user && (
-            <Link
-              href="/orders"
-              className="hidden text-sm font-medium text-gray-600 transition hover:text-[#b97970] sm:block"
-            >
-              Orders
-            </Link>
-          )}
+          {/* =========================
+              SELLER
+          ========================= */}
 
-          {/* Seller */}
           {user?.role === "seller" && (
             <Link
               href="/seller/products"
-              className="rounded-full bg-[#eee1f5] px-3 py-2 text-xs font-semibold text-[#76538c] transition hover:bg-[#e5d4ef]"
+              className={`font-medium transition ${
+                isActive("/seller")
+                  ? "text-blue-600"
+                  : "text-gray-600 hover:text-blue-600"
+              }`}
             >
               Seller
             </Link>
           )}
 
-          {/* Admin */}
-          {user?.role === "admin" && (
-            <div className="flex items-center gap-2">
+          {/* =========================
+              ADMIN
+          ========================= */}
 
+          {user?.role === "admin" && (
+            <>
               <Link
                 href="/admin/orders"
-                className="rounded-full bg-[#fce4e4] px-3 py-2 text-xs font-semibold text-[#a64b4b] transition hover:bg-[#f8d7d7]"
+                className={`font-medium transition ${
+                  isActive("/admin/orders")
+                    ? "text-blue-600"
+                    : "text-gray-600 hover:text-blue-600"
+                }`}
               >
                 Admin Orders
               </Link>
 
               <Link
                 href="/admin/categories"
-                className="hidden rounded-full bg-[#f9ecd8] px-3 py-2 text-xs font-semibold text-[#a06d2d] transition hover:bg-[#f5e3c5] sm:block"
+                className={`font-medium transition ${
+                  isActive("/admin/categories")
+                    ? "text-blue-600"
+                    : "text-gray-600 hover:text-blue-600"
+                }`}
               >
                 Categories
               </Link>
-
-            </div>
+            </>
           )}
+        </div>
 
-          {/* Auth */}
-          {!user ? (
-            <div className="flex items-center gap-2">
+        {/* =========================
+            DESKTOP AUTH
+        ========================= */}
 
+        <div className="hidden items-center gap-3 md:flex">
+
+          {user ? (
+            <>
+              <span className="max-w-32 truncate text-sm font-medium text-gray-600">
+                Hi, {user.name}
+              </span>
+
+              <button
+                onClick={handleLogout}
+                className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
               <Link
                 href="/login"
-                className="rounded-full px-4 py-2 text-sm font-semibold text-[#a96860] transition hover:bg-[#f8ebe7]"
+                className="rounded-lg border border-blue-600 px-4 py-2 text-sm font-semibold text-blue-600 transition hover:bg-blue-50"
               >
                 Login
               </Link>
 
               <Link
                 href="/register"
-                className="rounded-full bg-[#b97970] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#a9675f]"
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
               >
                 Register
               </Link>
+            </>
+          )}
+        </div>
 
-            </div>
+        {/* =========================
+            MOBILE BUTTON
+        ========================= */}
+
+        <button
+          type="button"
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="rounded-lg p-2 text-gray-700 hover:bg-gray-100 md:hidden"
+          aria-label="Toggle menu"
+        >
+          {menuOpen ? (
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
           ) : (
-            <div className="flex items-center gap-3">
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          )}
+        </button>
+      </div>
 
-              <div className="hidden text-right md:block">
-                <p className="text-[10px] uppercase tracking-wider text-gray-400">
-                  Welcome
-                </p>
+      {/* =========================
+          MOBILE MENU
+      ========================= */}
 
-                <p className="max-w-28 truncate text-sm font-semibold text-gray-700">
-                  {user.name}
-                </p>
-              </div>
+      {menuOpen && (
+        <div className="border-t border-gray-200 bg-white px-4 pb-5 pt-3 md:hidden">
 
+          <div className="flex flex-col gap-2">
+
+            <Link
+              href="/"
+              onClick={closeMenu}
+              className={`rounded-lg px-3 py-3 font-medium ${
+                isActive("/")
+                  ? "bg-blue-50 text-blue-600"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              Home
+            </Link>
+
+            <Link
+              href="/products"
+              onClick={closeMenu}
+              className={`rounded-lg px-3 py-3 font-medium ${
+                isActive("/products")
+                  ? "bg-blue-50 text-blue-600"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              Products
+            </Link>
+
+            {user && (
+              <>
+                <Link
+                  href="/cart"
+                  onClick={closeMenu}
+                  className={`flex items-center justify-between rounded-lg px-3 py-3 font-medium ${
+                    isActive("/cart")
+                      ? "bg-blue-50 text-blue-600"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <span>Cart</span>
+
+                  {cartCount > 0 && (
+                    <span className="rounded-full bg-red-500 px-2 py-1 text-xs font-bold text-white">
+                      {cartCount}
+                    </span>
+                  )}
+                </Link>
+
+                <Link
+                  href="/orders"
+                  onClick={closeMenu}
+                  className={`rounded-lg px-3 py-3 font-medium ${
+                    isActive("/orders")
+                      ? "bg-blue-50 text-blue-600"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  Orders
+                </Link>
+              </>
+            )}
+
+            {user?.role === "seller" && (
+              <Link
+                href="/seller/products"
+                onClick={closeMenu}
+                className="rounded-lg px-3 py-3 font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Seller Products
+              </Link>
+            )}
+
+            {user?.role === "admin" && (
+              <>
+                <Link
+                  href="/admin/orders"
+                  onClick={closeMenu}
+                  className="rounded-lg px-3 py-3 font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Admin Orders
+                </Link>
+
+                <Link
+                  href="/admin/categories"
+                  onClick={closeMenu}
+                  className="rounded-lg px-3 py-3 font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Categories
+                </Link>
+              </>
+            )}
+
+            <div className="my-2 border-t border-gray-200" />
+
+            {user ? (
               <button
-                onClick={() => dispatch(logout())}
-                className="rounded-full border border-[#e9c9c3] px-4 py-2 text-sm font-semibold text-[#a96860] transition hover:bg-[#f8ebe7]"
+                onClick={handleLogout}
+                className="rounded-lg bg-red-500 px-4 py-3 font-semibold text-white hover:bg-red-600"
               >
                 Logout
               </button>
+            ) : (
+              <div className="flex gap-2">
+                <Link
+                  href="/login"
+                  onClick={closeMenu}
+                  className="flex-1 rounded-lg border border-blue-600 px-4 py-3 text-center font-semibold text-blue-600"
+                >
+                  Login
+                </Link>
 
-            </div>
-          )}
-
+                <Link
+                  href="/register"
+                  onClick={closeMenu}
+                  className="flex-1 rounded-lg bg-blue-600 px-4 py-3 text-center font-semibold text-white"
+                >
+                  Register
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </nav>
   );
 }

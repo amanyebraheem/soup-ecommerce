@@ -2,7 +2,10 @@ const Cart = require("../models/cart.schema.cjs");
 const Product = require("../models/product.schema.cjs");
 
 
+// ========================================
 // GET CART
+// ========================================
+
 const getCart = async (req, res) => {
     try {
         let cart = await Cart.findOne({
@@ -14,6 +17,8 @@ const getCart = async (req, res) => {
                 user: req.user._id,
                 items: []
             });
+
+            await cart.populate("items.product");
         }
 
         return res.status(200).json({
@@ -30,18 +35,26 @@ const getCart = async (req, res) => {
 };
 
 
+// ========================================
 // ADD ITEM TO CART
+// ========================================
+
 const addToCart = async (req, res) => {
     try {
-        const { productId, quantity } = req.body;
+        const { productId, quantity = 1 } = req.body;
 
-        if (!productId || !quantity) {
+        if (!productId) {
             return res.status(400).json({
-                message: "Product ID and quantity are required"
+                message: "Product ID is required"
             });
         }
 
-        if (quantity < 1) {
+        const requestedQuantity = Number(quantity);
+
+        if (
+            !Number.isInteger(requestedQuantity) ||
+            requestedQuantity < 1
+        ) {
             return res.status(400).json({
                 message: "Quantity must be at least 1"
             });
@@ -55,11 +68,14 @@ const addToCart = async (req, res) => {
             });
         }
 
-        if (product.stock < quantity) {
-            return res.status(400).json({
-                message: "Not enough stock"
-            });
-        }
+        // --------------------------------
+        // IMPORTANT:
+        // We do NOT reject here because of
+        // stock.
+        //
+        // Stock is checked again when
+        // creating the actual order.
+        // --------------------------------
 
         let cart = await Cart.findOne({
             user: req.user._id
@@ -73,24 +89,22 @@ const addToCart = async (req, res) => {
         }
 
         const existingItem = cart.items.find(
-            item => item.product.toString() === productId
+            (item) =>
+                item.product.toString() ===
+                productId.toString()
         );
 
         if (existingItem) {
-            const newQuantity = existingItem.quantity + quantity;
 
-            if (newQuantity > product.stock) {
-                return res.status(400).json({
-                    message: "Not enough stock"
-                });
-            }
+            existingItem.quantity += requestedQuantity;
 
-            existingItem.quantity = newQuantity;
         } else {
+
             cart.items.push({
                 product: productId,
-                quantity
+                quantity: requestedQuantity
             });
+
         }
 
         await cart.save();
@@ -103,7 +117,11 @@ const addToCart = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Add Cart Error:", error);
+
+        console.error(
+            "Add Cart Error:",
+            error
+        );
 
         return res.status(500).json({
             message: "Server error"
@@ -112,9 +130,13 @@ const addToCart = async (req, res) => {
 };
 
 
+// ========================================
 // DELETE ITEM FROM CART
+// ========================================
+
 const removeFromCart = async (req, res) => {
     try {
+
         const { id } = req.params;
 
         const cart = await Cart.findOne({
@@ -139,13 +161,21 @@ const removeFromCart = async (req, res) => {
 
         await cart.save();
 
+        await cart.populate(
+            "items.product"
+        );
+
         return res.status(200).json({
             message: "Item removed from cart",
             cart
         });
 
     } catch (error) {
-        console.error("Remove Cart Error:", error);
+
+        console.error(
+            "Remove Cart Error:",
+            error
+        );
 
         return res.status(500).json({
             message: "Server error"
@@ -153,6 +183,10 @@ const removeFromCart = async (req, res) => {
     }
 };
 
+
+// ========================================
+// EXPORT
+// ========================================
 
 module.exports = {
     getCart,
